@@ -10,7 +10,6 @@
     <meta name="theme-color" content="#e10600" />
 
     <style>
-      /* ... Tutto lo stile che ti ho dato prima ... */
       * {
         box-sizing: border-box;
       }
@@ -58,6 +57,7 @@
         font-size: 1.15em;
         border-radius: 10px;
         border: none;
+        text-align: center;
       }
 
       .stepper-btn {
@@ -118,7 +118,7 @@
       }
 
       #risultato {
-        font-size: 3em;
+        font-size: 2.5em;
         font-weight: 800;
         margin: 20px 0 8px;
         letter-spacing: 1px;
@@ -192,7 +192,6 @@
     </div>
 
     <script>
-      /* ... Tutto il codice JS della versione PWA che ti ho scritto prima ... */
       let numeriDisponibili = [];
       let storicoEstrazioni = [];
       let numeroEstrazione = 0;
@@ -201,22 +200,34 @@
       const btnMinus = document.getElementById("btnMinus");
       const btnPlus = document.getElementById("btnPlus");
 
+      // Stepper +/-
       function stepNumero(delta) {
-        if (btnMinus.classList.contains("disabled") && delta < 0) return;
-        if (btnPlus.classList.contains("disabled") && delta > 0) return;
-
         const input = document.getElementById("perVolta");
         let valore = parseInt(input.value) || 1;
-        valore = Math.max(1, valore + delta);
+        valore += delta;
+
+        const totali = parseInt(document.getElementById("totali").value) || 1;
+        const noRip = document.getElementById("noRipetizione").checked;
+        let max = noRip
+          ? numeriDisponibili.length > 0
+            ? numeriDisponibili.length
+            : totali
+          : totali;
+
+        if (valore < 1) valore = 1;
+        if (valore > max) valore = max;
+
         input.value = valore;
         aggiornaStepper();
       }
 
+      // Inizializza numeri disponibili
       function inizializza() {
-        const totali = parseInt(document.getElementById("totali").value);
+        const totali = parseInt(document.getElementById("totali").value) || 1;
         numeriDisponibili = Array.from({ length: totali }, (_, i) => i + 1);
       }
 
+      // Aggiorna pulsante ESTRAI
       function aggiornaPulsante() {
         const noRip = document.getElementById("noRipetizione").checked;
         if (noRip && numeriDisponibili.length === 0) {
@@ -229,27 +240,34 @@
         aggiornaStepper();
       }
 
+      // Aggiorna +/-
       function aggiornaStepper() {
         const perVolta =
           parseInt(document.getElementById("perVolta").value) || 1;
         const noRip = document.getElementById("noRipetizione").checked;
-        let max = noRip ? numeriDisponibili.length : Infinity;
+        const totali = parseInt(document.getElementById("totali").value) || 1;
+
+        let max = noRip
+          ? numeriDisponibili.length > 0
+            ? numeriDisponibili.length
+            : totali
+          : totali;
 
         btnMinus.classList.toggle("disabled", perVolta <= 1);
         btnPlus.classList.toggle("disabled", perVolta >= max);
       }
 
+      // Estrazione
       function estrai() {
         if (btnEstrai.classList.contains("disabled")) return;
 
-        const totali = parseInt(document.getElementById("totali").value);
-        const perVolta = parseInt(document.getElementById("perVolta").value);
+        const totali = parseInt(document.getElementById("totali").value) || 1;
+        const perVolta =
+          parseInt(document.getElementById("perVolta").value) || 1;
         const noRip = document.getElementById("noRipetizione").checked;
         const msg = document.getElementById("messaggio");
 
         msg.innerText = "";
-        if (!totali || !perVolta) return;
-
         if (numeriDisponibili.length === 0) inizializza();
 
         if (noRip && numeriDisponibili.length === 0) {
@@ -279,6 +297,7 @@
         aggiornaPulsante();
       }
 
+      // Storico
       function aggiungiStorico(estratti) {
         const voce = document.createElement("div");
         voce.className = "voce-storico";
@@ -286,6 +305,7 @@
         document.getElementById("listaStorico").prepend(voce);
       }
 
+      // Annulla ultima
       function annullaUltima() {
         if (storicoEstrazioni.length === 0) return;
 
@@ -309,6 +329,7 @@
         aggiornaPulsante();
       }
 
+      // Reset
       function reset() {
         numeriDisponibili = [];
         storicoEstrazioni = [];
@@ -320,6 +341,11 @@
         btnEstrai.classList.remove("disabled");
         aggiornaStepper();
       }
+
+      // Aggiorna stepper all'avvio
+      window.onload = () => {
+        aggiornaStepper();
+      };
     </script>
   </body>
 </html>
