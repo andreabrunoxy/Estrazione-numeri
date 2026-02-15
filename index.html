@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estrazione Numeri</title>
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#e10600" />
+
+    <style>
+      /* ... Tutto lo stile che ti ho dato prima ... */
+      * {
+        box-sizing: border-box;
+      }
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        margin: 0;
+        padding: 18px;
+        background: #0e0e0e;
+        color: #fff;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 1.8em;
+        margin-bottom: 12px;
+      }
+
+      .label-input {
+        display: block;
+        font-size: 1.05em;
+        margin-bottom: 6px;
+        text-align: left;
+      }
+
+      .input-stepper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.15em;
+        border-radius: 10px;
+        border: none;
+      }
+
+      .stepper-btn {
+        width: 52px;
+        height: 52px;
+        font-size: 1.6em;
+        font-weight: bold;
+        border-radius: 10px;
+        border: none;
+        background: #333;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .stepper-btn.disabled {
+        background: #555;
+        color: #aaa;
+        cursor: default;
+      }
+
+      label.checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin: 14px 0;
+        font-size: 1.05em;
+      }
+
+      button {
+        width: 100%;
+        padding: 18px;
+        font-size: 1.25em;
+        margin: 10px 0;
+        border-radius: 12px;
+        border: none;
+        font-weight: bold;
+      }
+      button.main {
+        background: #e10600;
+        color: white;
+        cursor: pointer;
+      }
+      button.main.disabled {
+        background: #555;
+        color: #aaa;
+        cursor: default;
+      }
+      button.warning {
+        background: #f4a261;
+        color: #111;
+      }
+      button.secondary {
+        background: #444;
+        color: #fff;
+      }
+
+      #risultato {
+        font-size: 3em;
+        font-weight: 800;
+        margin: 20px 0 8px;
+        letter-spacing: 1px;
+      }
+      #messaggio {
+        font-size: 1em;
+        color: #f4a261;
+        min-height: 1.2em;
+      }
+
+      #storico {
+        margin-top: 14px;
+        text-align: left;
+        font-size: 1em;
+        max-height: 32vh;
+        overflow-y: auto;
+        border-top: 2px solid #222;
+        padding-top: 10px;
+      }
+      .voce-storico {
+        padding: 6px 0;
+        border-bottom: 1px solid #1a1a1a;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Estrazione</h1>
+
+    <label class="label-input" for="totali">Numeri totali</label>
+    <input
+      type="number"
+      id="totali"
+      placeholder="Numeri totali"
+      min="1"
+      value="10"
+    />
+
+    <label class="label-input" for="perVolta">Numeri da estrarre</label>
+    <div class="input-stepper">
+      <button id="btnMinus" class="stepper-btn" onclick="stepNumero(-1)">
+        −
+      </button>
+      <input
+        type="number"
+        id="perVolta"
+        placeholder="Numeri da estrarre"
+        min="1"
+        value="1"
+      />
+      <button id="btnPlus" class="stepper-btn" onclick="stepNumero(1)">
+        +
+      </button>
+    </div>
+
+    <label class="checkbox">
+      <input type="checkbox" id="noRipetizione" checked />
+      Non ripetere numeri
+    </label>
+
+    <button id="btnEstrai" class="main" onclick="estrai()">ESTRAI</button>
+    <button class="warning" onclick="annullaUltima()">ANNULLA ULTIMA</button>
+    <button class="secondary" onclick="reset()">RESET</button>
+
+    <div id="risultato">—</div>
+    <div id="messaggio"></div>
+
+    <div id="storico">
+      <strong>Storico</strong>
+      <div id="listaStorico"></div>
+    </div>
+
+    <script>
+      /* ... Tutto il codice JS della versione PWA che ti ho scritto prima ... */
+      let numeriDisponibili = [];
+      let storicoEstrazioni = [];
+      let numeroEstrazione = 0;
+
+      const btnEstrai = document.getElementById("btnEstrai");
+      const btnMinus = document.getElementById("btnMinus");
+      const btnPlus = document.getElementById("btnPlus");
+
+      function stepNumero(delta) {
+        if (btnMinus.classList.contains("disabled") && delta < 0) return;
+        if (btnPlus.classList.contains("disabled") && delta > 0) return;
+
+        const input = document.getElementById("perVolta");
+        let valore = parseInt(input.value) || 1;
+        valore = Math.max(1, valore + delta);
+        input.value = valore;
+        aggiornaStepper();
+      }
+
+      function inizializza() {
+        const totali = parseInt(document.getElementById("totali").value);
+        numeriDisponibili = Array.from({ length: totali }, (_, i) => i + 1);
+      }
+
+      function aggiornaPulsante() {
+        const noRip = document.getElementById("noRipetizione").checked;
+        if (noRip && numeriDisponibili.length === 0) {
+          btnEstrai.innerText = "NUMERI ESAURITI";
+          btnEstrai.classList.add("disabled");
+        } else {
+          btnEstrai.innerText = "ESTRAI";
+          btnEstrai.classList.remove("disabled");
+        }
+        aggiornaStepper();
+      }
+
+      function aggiornaStepper() {
+        const perVolta =
+          parseInt(document.getElementById("perVolta").value) || 1;
+        const noRip = document.getElementById("noRipetizione").checked;
+        let max = noRip ? numeriDisponibili.length : Infinity;
+
+        btnMinus.classList.toggle("disabled", perVolta <= 1);
+        btnPlus.classList.toggle("disabled", perVolta >= max);
+      }
+
+      function estrai() {
+        if (btnEstrai.classList.contains("disabled")) return;
+
+        const totali = parseInt(document.getElementById("totali").value);
+        const perVolta = parseInt(document.getElementById("perVolta").value);
+        const noRip = document.getElementById("noRipetizione").checked;
+        const msg = document.getElementById("messaggio");
+
+        msg.innerText = "";
+        if (!totali || !perVolta) return;
+
+        if (numeriDisponibili.length === 0) inizializza();
+
+        if (noRip && numeriDisponibili.length === 0) {
+          aggiornaPulsante();
+          return;
+        }
+
+        let estratti = [];
+        let quantiEstrarre = noRip
+          ? Math.min(perVolta, numeriDisponibili.length)
+          : perVolta;
+
+        for (let i = 0; i < quantiEstrarre; i++) {
+          let pool = noRip
+            ? numeriDisponibili
+            : Array.from({ length: totali }, (_, i) => i + 1);
+          let indice = Math.floor(Math.random() * pool.length);
+          let numero = pool[indice];
+          estratti.push(numero);
+          if (noRip) numeriDisponibili.splice(indice, 1);
+        }
+
+        numeroEstrazione++;
+        storicoEstrazioni.push(estratti);
+        document.getElementById("risultato").innerText = estratti.join(" · ");
+        aggiungiStorico(estratti);
+        aggiornaPulsante();
+      }
+
+      function aggiungiStorico(estratti) {
+        const voce = document.createElement("div");
+        voce.className = "voce-storico";
+        voce.innerText = "#" + numeroEstrazione + ": " + estratti.join(", ");
+        document.getElementById("listaStorico").prepend(voce);
+      }
+
+      function annullaUltima() {
+        if (storicoEstrazioni.length === 0) return;
+
+        const ultima = storicoEstrazioni.pop();
+        numeroEstrazione--;
+
+        if (document.getElementById("noRipetizione").checked) {
+          numeriDisponibili.push(...ultima);
+          numeriDisponibili.sort((a, b) => a - b);
+        }
+
+        const lista = document.getElementById("listaStorico");
+        if (lista.firstChild) lista.removeChild(lista.firstChild);
+
+        document.getElementById("risultato").innerText =
+          storicoEstrazioni.length > 0
+            ? storicoEstrazioni[storicoEstrazioni.length - 1].join(" · ")
+            : "—";
+
+        document.getElementById("messaggio").innerText = "";
+        aggiornaPulsante();
+      }
+
+      function reset() {
+        numeriDisponibili = [];
+        storicoEstrazioni = [];
+        numeroEstrazione = 0;
+        document.getElementById("risultato").innerText = "—";
+        document.getElementById("messaggio").innerText = "";
+        document.getElementById("listaStorico").innerHTML = "";
+        btnEstrai.innerText = "ESTRAI";
+        btnEstrai.classList.remove("disabled");
+        aggiornaStepper();
+      }
+    </script>
+  </body>
+</html>
